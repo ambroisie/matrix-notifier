@@ -34,7 +34,12 @@
         inherit (nixpkgs) lib;
         pkgs = nixpkgs.legacyPackages.${system};
       in
-      {
+      rec {
+        apps = {
+          matrix-notifier =
+            futils.lib.mkApp { drv = packages.matrix-notifier; };
+        };
+
         checks = {
           pre-commit = pre-commit-hooks.lib.${system}.run {
             src = ./.;
@@ -51,6 +56,10 @@
           };
         };
 
+        defaultApp = apps.matrix-notifier;
+
+        defaultPackage = packages.matrix-notifier;
+
         devShell = pkgs.mkShell {
           name = "matrix-notifier";
 
@@ -61,6 +70,42 @@
           ];
 
           inherit (self.checks.${system}.pre-commit) shellHook;
+        };
+
+        packages = {
+          matrix-notifier = pkgs.stdenvNoCC.mkDerivation rec {
+            pname = "matrix-notifier";
+            version = "0.1.0";
+
+            src = ./matrix-notifier;
+
+            phases = [ "buildPhase" "installPhase" "fixupPhase" ];
+
+            nativeBuildInputs = with pkgs; [
+              makeWrapper
+              shellcheck
+            ];
+
+            buildPhase = ''
+              shellcheck $src
+            '';
+
+            installPhase = ''
+              mkdir -p $out/bin
+              cp $src $out/bin/${pname}
+              chmod a+x $out/bin/${pname}
+            '';
+
+            wrapperPath = with pkgs; lib.makeBinPath [
+              curl
+              jq
+            ];
+
+            fixupPhase = ''
+              patchShebangs $out/bin/${pname}
+              wrapProgram $out/bin/${pname} --prefix PATH : "${wrapperPath}"
+            '';
+          };
         };
       }
     );
