@@ -57,6 +57,7 @@
           buildInputs = with pkgs; [
             curl
             jq
+            shellcheck
           ];
 
           inherit (self.checks.${system}.pre-commit) shellHook;
