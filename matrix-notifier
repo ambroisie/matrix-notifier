@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+print_err() {
+    printf "%s\n" "$1" >&2
+}
+
+# Blessed Stack Overflow
+rawurlencode() {
+    (set +x
+    local string="${1}"
+    local strlen=${#string}
+    local encoded=""
+    local pos c o
+
+    for ((pos=0 ; pos<strlen; pos++)); do
+        c=${string:$pos:1}
+        case "$c" in
+            [-_.~a-zA-Z0-9] ) o="$c" ;;
+            * )               printf -v o '%%%02x' "'$c"
+        esac
+        encoded+="$o"
+    done
+    echo "$encoded")
+}
+
+if [ -z "$USER" ] || [ -z "$PASS" ]; then
+    print_err "You must provide USER and PASS"
+    exit 1
+elif [ -z "$ADDRESS" ] || [ -z "$ROOM" ]; then
+    print_err "You must provide ADDRESS and ROOM"
+    exit 1
+elif [ -z "$MESSAGE" ]; then
+    print_err "You must provide MESSAGE"
+    exit 1
+fi
+
+if [ "$(curl -XGET "$ADDRESS/_matrix/client/r0/login" 2>/dev/null |
+    jq 'any(.flows[].type; .== "m.login.password")')" != "true" ]; then
+    print_err "Login method not supported"
+    exit 1
+fi
+
+
+LOGIN_JSON="$(printf '%s\n%s' "$USER" "$PASS" |
+    jq -Rn '[inputs] | {type: "m.login.password", user: .[0], password: .[1]}')" &>/dev/null
+TOKEN="$(curl -XPOST \
+    -d "$LOGIN_JSON" \
+    "$ADDRESS/_matrix/client/r0/login" 2>/dev/null| jq .access_token --raw-output)"
+
+if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
+    print_err "Error during login"
+    exit 1
+fi
+
+MESSAGE_JSON="$(printf '%s' "$MESSAGE" |
+    jq --raw-input --slurp '{msgtype: "m.text", body: .}')"
+curl -XPOST \
+    -d "$MESSAGE_JSON" \
+    "$ADDRESS/_matrix/client/r0/rooms/$(rawurlencode "$ROOM")/send/m.room.message?access_token=$(rawurlencode "$TOKEN")" 2>/dev/null
