@@ -9,6 +9,9 @@ usage() {
     print_err ""
     print_err "  -h, --help"
     print_err "    print this usage screen and exit"
+    print_err "  -t, --type"
+    print_err "    which message type should be sent"
+    print_err "    must be one of 'text' or 'notice'"
 }
 
 # Blessed Stack Overflow
@@ -78,17 +81,31 @@ send_message() {
     fi
 
     message_json="$(printf '%s' "$MESSAGE" |
-        jq --raw-input --slurp "{msgtype: \"m.text\", body: .}")"
+        jq --raw-input --slurp "{msgtype: \"$MSG_TYPE\", body: .}")"
     curl -XPOST \
         -d "$message_json" \
         "$ADDRESS/_matrix/client/r0/rooms/$(rawurlencode "$ROOM")/send/m.room.message?access_token=$(rawurlencode "$token")" 2>/dev/null
 }
+
+MSG_TYPE='m.text'
 
 while [ $# -gt 0 ]; do
     opt="$1"
     shift
 
     case "$opt" in
+        -t|--type)
+            arg="$1"
+            shift
+            if [ -z "$arg" ]; then
+                print_err "Must give a message type when using '-t|--type'"
+                exit 1
+            elif [ "$arg" != "text" ] && [ "$arg" != "notice" ]; then
+                print_err "Invalid message type '$arg'"
+                exit 1
+            fi
+            MSG_TYPE="m.$arg"
+            ;;
         -h|--help)
             usage
             exit
