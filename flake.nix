@@ -105,6 +105,17 @@
               patchShebangs $out/bin/${pname}
               wrapProgram $out/bin/${pname} --prefix PATH : "${wrapperPath}"
             '';
+
+            meta = with pkgs.lib; {
+              description = ''
+                A very simple bash script that can be used to send a message to
+                a Matrix room
+              '';
+              homepage = "https://gitea.belanyi.fr/ambroisie/${pname}";
+              license = licenses.mit;
+              platforms = platforms.unix;
+              maintainers = with maintainers; [ ambroisie ];
+            };
           };
         };
       }
