@@ -87,7 +87,7 @@ send_message() {
         "$ADDRESS/_matrix/client/r0/rooms/$(rawurlencode "$ROOM")/send/m.room.message?access_token=$(rawurlencode "$token")" 2>/dev/null
 }
 
-MSG_TYPE='m.text'
+MSG_TYPE='m.notice'
 
 while [ $# -gt 0 ]; do
     opt="$1"
