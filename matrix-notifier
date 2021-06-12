@@ -10,8 +10,10 @@ usage() {
     print_err "  -h, --help"
     print_err "    print this usage screen and exit"
     print_err "  -t, --type"
-    print_err "    which message type should be sent"
-    print_err "    must be one of 'text' or 'notice'"
+    print_err "    which message type should be sent must be one of"
+    print_err "    'text' or 'notice', or 'auto'."
+    print_err "    The special value 'auto' defaults to 'notice', unless"
+    print_err "    'DRONE_BUILD_STATUS' indicates a failure."
 }
 
 # Blessed Stack Overflow
@@ -100,11 +102,17 @@ while [ $# -gt 0 ]; do
             if [ -z "$arg" ]; then
                 print_err "Must give a message type when using '-t|--type'"
                 exit 1
-            elif [ "$arg" != "text" ] && [ "$arg" != "notice" ]; then
+            elif [ "$arg" == "text" ] || [ "$arg" == "notice" ]; then
+                MSG_TYPE="m.$arg"
+            elif [ "$arg" == "auto" ]; then
+                MSG_TYPE="m.notice"
+                if [ "$DRONE_BUILD_STATUS" == "failure" ]; then
+                    MSG_TYPE="m.text"
+                fi
+            else
                 print_err "Invalid message type '$arg'"
                 exit 1
             fi
-            MSG_TYPE="m.$arg"
             ;;
         -h|--help)
             usage
