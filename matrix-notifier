@@ -4,6 +4,13 @@ print_err() {
     printf "%s\n" "$1" >&2
 }
 
+usage() {
+    print_err "Usage: $0 [option]..."
+    print_err ""
+    print_err "  -h, --help"
+    print_err "    print this usage screen and exit"
+}
+
 # Blessed Stack Overflow
 rawurlencode() {
     (set +x
@@ -30,41 +37,69 @@ default_drone_message() {
     printf '%s' "$msg"
 }
 
-if [ "$DRONE" == "true" ] && [ -z "$MESSAGE" ]; then
-    MESSAGE="$(default_drone_message)"
-fi
+ensure_variables() {
+    if [ "$DRONE" == "true" ] && [ -z "$MESSAGE" ]; then
+        MESSAGE="$(default_drone_message)"
+    fi
 
-if [ -z "$USER" ] || [ -z "$PASS" ]; then
-    print_err "You must provide USER and PASS"
-    exit 1
-elif [ -z "$ADDRESS" ] || [ -z "$ROOM" ]; then
-    print_err "You must provide ADDRESS and ROOM"
-    exit 1
-elif [ -z "$MESSAGE" ]; then
-    print_err "You must provide MESSAGE"
-    exit 1
-fi
+    if [ -z "$USER" ] || [ -z "$PASS" ]; then
+        print_err "You must provide USER and PASS"
+        exit 1
+    elif [ -z "$ADDRESS" ] || [ -z "$ROOM" ]; then
+        print_err "You must provide ADDRESS and ROOM"
+        exit 1
+    elif [ -z "$MESSAGE" ]; then
+        print_err "You must provide MESSAGE"
+        exit 1
+    fi
+}
 
-if [ "$(curl -XGET "$ADDRESS/_matrix/client/r0/login" 2>/dev/null |
-    jq 'any(.flows[].type; .== "m.login.password")')" != "true" ]; then
-    print_err "Login method not supported"
-    exit 1
-fi
+send_message() {
+    local login_json
+    local token
+    local message_json
+
+    if [ "$(curl -XGET "$ADDRESS/_matrix/client/r0/login" 2>/dev/null |
+        jq 'any(.flows[].type; .== "m.login.password")')" != "true" ]; then
+        print_err "Login method not supported"
+        exit 1
+    fi
 
 
-LOGIN_JSON="$(printf '%s\n%s' "$USER" "$PASS" |
-    jq -Rn '[inputs] | {type: "m.login.password", user: .[0], password: .[1]}')" &>/dev/null
-TOKEN="$(curl -XPOST \
-    -d "$LOGIN_JSON" \
-    "$ADDRESS/_matrix/client/r0/login" 2>/dev/null| jq .access_token --raw-output)"
+    login_json="$(printf '%s\n%s' "$USER" "$PASS" |
+        jq -Rn '[inputs] | {type: "m.login.password", user: .[0], password: .[1]}')" &>/dev/null
+    token="$(curl -XPOST \
+        -d "$login_json" \
+        "$ADDRESS/_matrix/client/r0/login" 2>/dev/null| jq .access_token --raw-output)"
 
-if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
-    print_err "Error during login"
-    exit 1
-fi
+    if [ -z "$token" ] || [ "$token" == "null" ]; then
+        print_err "Error during login"
+        exit 1
+    fi
 
-MESSAGE_JSON="$(printf '%s' "$MESSAGE" |
-    jq --raw-input --slurp '{msgtype: "m.text", body: .}')"
-curl -XPOST \
-    -d "$MESSAGE_JSON" \
-    "$ADDRESS/_matrix/client/r0/rooms/$(rawurlencode "$ROOM")/send/m.room.message?access_token=$(rawurlencode "$TOKEN")" 2>/dev/null
+    message_json="$(printf '%s' "$MESSAGE" |
+        jq --raw-input --slurp "{msgtype: \"m.text\", body: .}")"
+    curl -XPOST \
+        -d "$message_json" \
+        "$ADDRESS/_matrix/client/r0/rooms/$(rawurlencode "$ROOM")/send/m.room.message?access_token=$(rawurlencode "$token")" 2>/dev/null
+}
+
+while [ $# -gt 0 ]; do
+    opt="$1"
+    shift
+
+    case "$opt" in
+        -h|--help)
+            usage
+            exit
+            ;;
+        *)
+            print_err "Unknown argument '$opt'"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+ensure_variables
+send_message
