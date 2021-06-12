@@ -59,6 +59,18 @@ ensure_variables() {
     fi
 }
 
+get_message_type() {
+    if [ "$MSG_TYPE" == "auto" ]; then
+        if [ "$DRONE_BUILD_STATUS" == "failure" ]; then
+            MSG_TYPE="text"
+        else
+            MSG_TYPE="notice"
+        fi
+    fi
+
+    printf '%s' "m.$MSG_TYPE"
+}
+
 send_message() {
     local login_json
     local token
@@ -83,13 +95,13 @@ send_message() {
     fi
 
     message_json="$(printf '%s' "$MESSAGE" |
-        jq --raw-input --slurp "{msgtype: \"$MSG_TYPE\", body: .}")"
+        jq --raw-input --slurp "{msgtype: \"$(get_message_type)\", body: .}")"
     curl -XPOST \
         -d "$message_json" \
         "$ADDRESS/_matrix/client/r0/rooms/$(rawurlencode "$ROOM")/send/m.room.message?access_token=$(rawurlencode "$token")" 2>/dev/null
 }
 
-MSG_TYPE='m.notice'
+MSG_TYPE='notice'
 
 while [ $# -gt 0 ]; do
     opt="$1"
@@ -99,20 +111,19 @@ while [ $# -gt 0 ]; do
         -t|--type)
             arg="$1"
             shift
+
             if [ -z "$arg" ]; then
                 print_err "Must give a message type when using '-t|--type'"
                 exit 1
-            elif [ "$arg" == "text" ] || [ "$arg" == "notice" ]; then
-                MSG_TYPE="m.$arg"
-            elif [ "$arg" == "auto" ]; then
-                MSG_TYPE="m.notice"
-                if [ "$DRONE_BUILD_STATUS" == "failure" ]; then
-                    MSG_TYPE="m.text"
-                fi
-            else
-                print_err "Invalid message type '$arg'"
-                exit 1
             fi
+
+            for type in text notice auto; do
+                if [ "$arg" == "$type" ]; then
+                    continue 2 # Go to next argument
+                fi
+            done
+            print_err "Invalid message type '$arg'"
+            exit 1
             ;;
         -h|--help)
             usage
