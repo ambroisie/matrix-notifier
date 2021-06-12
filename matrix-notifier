@@ -23,6 +23,17 @@ rawurlencode() {
     echo "$encoded")
 }
 
+default_drone_message() {
+    local msg="Build ${DRONE_BUILD_STATUS}"
+    msg="$msg ${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}"
+    msg="$msg (${DRONE_BRANCH})"
+    printf '%s' "$msg"
+}
+
+if [ "$DRONE" == "true" ] && [ -z "$MESSAGE" ]; then
+    MESSAGE="$(default_drone_message)"
+fi
+
 if [ -z "$USER" ] || [ -z "$PASS" ]; then
     print_err "You must provide USER and PASS"
     exit 1
