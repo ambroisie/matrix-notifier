@@ -38,7 +38,7 @@ rawurlencode() {
 default_drone_message() {
     local msg="Build ${DRONE_BUILD_STATUS}"
     msg="$msg ${DRONE_SYSTEM_PROTO}://${DRONE_SYSTEM_HOST}/${DRONE_REPO}/${DRONE_BUILD_NUMBER}"
-    msg="$msg (${DRONE_BRANCH})"
+    msg="$msg (${DRONE_TAG:-$DRONE_BRANCH})"
     printf '%s' "$msg"
 }
 
