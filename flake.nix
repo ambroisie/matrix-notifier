@@ -75,7 +75,7 @@
         packages = {
           matrix-notifier = pkgs.stdenvNoCC.mkDerivation rec {
             pname = "matrix-notifier";
-            version = "0.1.2";
+            version = "0.2.0";
 
             src = ./matrix-notifier;
 
