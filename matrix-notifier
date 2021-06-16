@@ -71,6 +71,15 @@ get_message_type() {
     printf '%s' "m.$MSG_TYPE"
 }
 
+make_message_json() {
+    jq -s '.[0] * .[1]' \
+        <(printf '%s' "$1" |
+            pandoc |
+            jq --raw-input --slurp "{format: \"org.matrix.custom.html\", formatted_body: .}") \
+        <(printf '%s' "$1" |
+            jq --raw-input --slurp "{msgtype: \"$(get_message_type)\", body: .}")
+}
+
 send_message() {
     local login_json
     local token
@@ -94,8 +103,7 @@ send_message() {
         exit 1
     fi
 
-    message_json="$(printf '%s' "$MESSAGE" |
-        jq --raw-input --slurp "{msgtype: \"$(get_message_type)\", body: .}")"
+    message_json="$(make_message_json "$MESSAGE")"
     curl -XPOST \
         -d "$message_json" \
         "$ADDRESS/_matrix/client/r0/rooms/$(rawurlencode "$ROOM")/send/m.room.message?access_token=$(rawurlencode "$token")" 2>/dev/null

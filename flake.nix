@@ -99,6 +99,7 @@
             wrapperPath = with pkgs; lib.makeBinPath [
               curl
               jq
+              pandoc
             ];
 
             fixupPhase = ''
