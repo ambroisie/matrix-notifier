@@ -31,4 +31,4 @@ export MESSAGE='This is my test message'
 This script is packaged with `Nix`, you can just use `nix run .` to run it.
 
 The only dependencies are `bash`, `curl`, and `jq`, install those and you should
-be ready to go!
+be ready to go! Format is needed when using formatting (enabled by default).
