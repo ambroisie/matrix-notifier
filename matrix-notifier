@@ -9,6 +9,9 @@ usage() {
     print_err ""
     print_err "  -h, --help"
     print_err "    print this usage screen and exit"
+    print_err "  -f, --format"
+    print_err "    should the message be formatted using 'pandoc'."
+    print_err "    Must be either 'true' or 'false'."
     print_err "  -t, --type"
     print_err "    which message type should be sent must be one of"
     print_err "    'text' or 'notice', or 'auto'."
@@ -72,12 +75,13 @@ get_message_type() {
 }
 
 make_message_json() {
-    jq -s '.[0] * .[1]' \
-        <(printf '%s' "$1" |
+    {
+        printf '%s' "$1" |
+            jq --raw-input --slurp "{msgtype: \"$(get_message_type)\", body: .}"
+        [ "$FORMAT" == "true" ] && printf '%s' "$1" |
             pandoc |
-            jq --raw-input --slurp "{format: \"org.matrix.custom.html\", formatted_body: .}") \
-        <(printf '%s' "$1" |
-            jq --raw-input --slurp "{msgtype: \"$(get_message_type)\", body: .}")
+            jq --raw-input --slurp "{format: \"org.matrix.custom.html\", formatted_body: .}"
+    } | jq -s 'add'
 }
 
 send_message() {
@@ -110,12 +114,25 @@ send_message() {
 }
 
 MSG_TYPE='auto'
+FORMAT='true'
 
 while [ $# -gt 0 ]; do
     opt="$1"
     shift
 
     case "$opt" in
+        -f|--format)
+            arg="$1"
+            shift
+
+            if [ "$arg" == "true" ] || [ "$arg" == "false" ]; then
+                FORMAT="$arg"
+                continue
+            fi
+
+            print_err "Must give value 'true' or 'false' with '-t|--type'"
+            exit 1
+            ;;
         -t|--type)
             arg="$1"
             shift
