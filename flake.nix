@@ -63,10 +63,8 @@
         devShell = pkgs.mkShell {
           name = "matrix-notifier";
 
-          buildInputs = with pkgs; [
-            curl
-            jq
-            shellcheck
+          inputsFrom = with self.packages.${system}; [
+            matrix-notifier
           ];
 
           inherit (self.checks.${system}.pre-commit) shellHook;
