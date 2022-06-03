@@ -36,6 +36,8 @@
       in
       rec {
         apps = {
+          default = apps.matrix-notifier;
+
           matrix-notifier =
             futils.lib.mkApp { drv = packages.matrix-notifier; };
         };
@@ -56,21 +58,21 @@
           };
         };
 
-        defaultApp = apps.matrix-notifier;
+        devShells = {
+          default = pkgs.mkShell {
+            name = "matrix-notifier";
 
-        defaultPackage = packages.matrix-notifier;
+            inputsFrom = with self.packages.${system}; [
+              matrix-notifier
+            ];
 
-        devShell = pkgs.mkShell {
-          name = "matrix-notifier";
-
-          inputsFrom = with self.packages.${system}; [
-            matrix-notifier
-          ];
-
-          inherit (self.checks.${system}.pre-commit) shellHook;
+            inherit (self.checks.${system}.pre-commit) shellHook;
+          };
         };
 
         packages = {
+          default = packages.matrix-notifier;
+
           matrix-notifier = pkgs.stdenvNoCC.mkDerivation rec {
             pname = "matrix-notifier";
             version = "0.2.0";
