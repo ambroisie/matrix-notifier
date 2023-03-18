@@ -16,7 +16,7 @@ usage() {
     print_err "    which message type should be sent must be one of"
     print_err "    'text' or 'notice', or 'auto'."
     print_err "    The special value 'auto' defaults to 'notice', unless"
-    print_err "    'DRONE_BUILD_STATUS' indicates a failure."
+    print_err "    'CI_PIPELINE_STATUS'/'DRONE_BUILD_STATUS' indicates a failure."
 }
 
 # Blessed Stack Overflow
@@ -38,6 +38,18 @@ rawurlencode() {
     echo "$encoded")
 }
 
+default_woodpecker_message() {
+    local msg="Build ${CI_PIPELINE_STATUS}"
+    local woodpecker_url="${CI_SYSTEM_LINK}/${CI_REPO}/${CI_PIPELINE_NUMBER}"
+    if [ "$FORMAT" == "true" ]; then
+        msg="$msg [${CI_REPO}#${CI_COMMIT_SHA:0:8}]($woodpecker_url)"
+    else
+        msg="$msg $woodpecker_url"
+    fi
+    msg="$msg (${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH})"
+    printf '%s' "$msg"
+}
+
 default_drone_message() {
     local msg="Build ${DRONE_BUILD_STATUS}"
     local drone_url="${DRONE_SYSTEM_PROTO}://${DRONE_SYSTEM_HOST}/${DRONE_REPO}/${DRONE_BUILD_NUMBER}"
@@ -51,7 +63,9 @@ default_drone_message() {
 }
 
 ensure_variables() {
-    if [ "$DRONE" == "true" ] && [ -z "$MESSAGE" ]; then
+    if [ "$CI" == "woodpecker" ] && [ -z "$MESSAGE" ]; then
+        MESSAGE="$(default_woodpecker_message)"
+    elif [ "$DRONE" == "true" ] && [ -z "$MESSAGE" ]; then
         MESSAGE="$(default_drone_message)"
     fi
 
@@ -69,7 +83,9 @@ ensure_variables() {
 
 get_message_type() {
     if [ "$MSG_TYPE" == "auto" ]; then
-        if [ "$DRONE_BUILD_STATUS" == "failure" ]; then
+        if [ "$CI_PIPELINE_STATUS" == "failure" ]; then
+            MSG_TYPE="text"
+        elif [ "$DRONE_BUILD_STATUS" == "failure" ]; then
             MSG_TYPE="text"
         else
             MSG_TYPE="notice"
