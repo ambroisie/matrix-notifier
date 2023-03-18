@@ -1,5 +1,5 @@
 {
-  description = "Ambroisie's blog";
+  description = "A simple Matrix notifier for CI purposes";
 
   inputs = {
     futils = {
