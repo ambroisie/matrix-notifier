@@ -1,0 +1,26 @@
+labels:
+  type: exec
+
+pipeline:
+- name: pre-commit checks
+  image: bash
+  commands:
+  - nix flake check
+
+- name: notifiy
+  image: bash
+  secrets:
+  - source: matrix_password
+    target: pass
+  - source: matrix_homeserver
+    target: address
+  - source: matrix_roomid
+    target: room
+  - source: matrix_username
+    target: user
+  commands:
+  - nix run .
+  when:
+    status:
+    - failure
+    - success
