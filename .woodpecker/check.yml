@@ -7,6 +7,11 @@ steps:
   commands:
   - nix flake check
 
+- name: package check
+  image: bash
+  commands:
+  - nix build
+
 - name: notifiy
   image: bash
   secrets:
