@@ -2,7 +2,7 @@ labels:
   type: exec
 
 steps:
-- name: pre-commit checks
+- name: flake check
   image: bash
   commands:
   - nix flake check
