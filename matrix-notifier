@@ -40,7 +40,7 @@ rawurlencode() {
 
 default_woodpecker_message() {
     local msg="Build ${CI_PIPELINE_STATUS}"
-    local woodpecker_url="${CI_SYSTEM_LINK}/${CI_REPO}/${CI_PIPELINE_NUMBER}"
+    local woodpecker_url="${CI_PIPELINE_URL}"
     if [ "$FORMAT" == "true" ]; then
         msg="$msg [${CI_REPO}#${CI_COMMIT_SHA:0:8}]($woodpecker_url)"
     else
